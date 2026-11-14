@@ -3,6 +3,7 @@
 #include <string.h>
 #include "game.h"
 #include "art.h"
+#include "pack.h"
 
 static int fails;
 #define CHECK(cond, ...) do { if (!(cond)) { fails++; \
@@ -113,8 +114,66 @@ static void test_take_place(void)
     CHECK(!game_take_place(&g), "發射器上不能放");
 }
 
+static void test_pack_roundtrip(void)
+{
+    static char buf[8192];
+    static level_pack p;
+    size_t n = pack_format(LEVELS, LEVEL_COUNT, buf, sizeof buf);
+    CHECK(n > 0, "pack_format");
+    pack_parse(&p, buf, n);
+    CHECK(p.count == LEVEL_COUNT && p.bad == 0, "roundtrip count %d bad %d", p.count, p.bad);
+    for (int l = 0; l < p.count && l < LEVEL_COUNT; l++) {
+        CHECK(p.defs[l].hand == LEVELS[l].hand, "level %d hand", l + 1);
+        for (int y = 0; y < BOARD_H; y++)
+            CHECK(!strcmp(p.defs[l].rows[y], LEVELS[l].rows[y]), "level %d row %d", l + 1, y);
+    }
+}
+
+static void test_pack_errors(void)
+{
+    static level_pack p;
+    /* CRLF、註解、一關少一行、一關沒有接收器、一關正常 */
+    const char *txt =
+        "; comment\r\n"
+        "################\r\n#>............R#\r\n"    /* 只有 2 行 */
+        "\r\n";
+    pack_parse(&p, txt, strlen(txt));
+    CHECK(p.count == 0 && p.bad == 1, "短關卡 count %d bad %d", p.count, p.bad);
+
+    static char buf[4096];
+    size_t n = pack_format(LEVELS, 1, buf, sizeof buf);
+    char *r = strchr(buf, 'R');             /* 拿掉第 1 關唯一的接收器 */
+    *r = '.';
+    pack_parse(&p, buf, n);
+    CHECK(p.count == 0 && p.bad == 1, "無接收器 count %d bad %d", p.count, p.bad);
+
+    n = pack_format(LEVELS, 2, buf, sizeof buf);
+    *strrchr(buf, '#') = 'x';               /* 第 2 關最後一行有未知字元 */
+    pack_parse(&p, buf, n);
+    CHECK(p.count == 1 && p.bad == 1, "壞掉的關不影響前一關 count %d bad %d", p.count, p.bad);
+}
+
+static void test_save(void)
+{
+    save_data s, t;
+    char buf[256];
+    memset(&s, 0, sizeof s);
+    s.level = 3;
+    s.best[0] = 2;
+    s.best[4] = 17;
+    size_t n = save_format(&s, 5, buf, sizeof buf);
+    save_parse(&t, buf, n);
+    CHECK(t.level == 3 && t.best[0] == 2 && t.best[4] == 17 && t.best[1] == 0,
+          "save roundtrip");
+    save_parse(&t, "garbage\nbest 99 3\nlevel 0\n", 26);
+    CHECK(t.level == 0 && t.best[0] == 0, "壞存檔不爆");
+}
+
 int main(void)
 {
+    test_pack_roundtrip();
+    test_pack_errors();
+    test_save();
     test_level_rows();
     test_solutions();
     test_reflect_and_edges();

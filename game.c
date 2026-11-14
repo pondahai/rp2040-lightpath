@@ -82,9 +82,24 @@ void game_load_def(game *g, const level_def *def)
     game_trace(g);
 }
 
+static const level_def *levels = LEVELS;
+static int level_count = -1;            /* -1 = 內建，LEVEL_COUNT 不是編譯期常數 */
+
+void game_set_levels(const level_def *defs, int n)
+{
+    levels = defs;
+    level_count = n;
+}
+
+int game_level_count(void)
+{
+    return level_count < 0 ? LEVEL_COUNT : level_count;
+}
+
 void game_load(game *g, int level)
 {
-    game_load_def(g, &LEVELS[level]);
+    if (level < 0 || level >= game_level_count()) level = 0;
+    game_load_def(g, &levels[level]);
     g->level = level;
 }
 

@@ -12,6 +12,8 @@
 typedef struct {
     game g;
     int  all_clear;                 /* 最後一關也過了 */
+    const uint16_t *best;           /* 每關最少步數（存檔），0 = 沒紀錄 */
+    char msg[12];                   /* 資訊欄的提示（SD 狀態等），8 字內 */
 } scene;
 
 /* 盤面列 y 的格子所在的條 */

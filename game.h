@@ -40,8 +40,12 @@ typedef struct {
 
 /* 字元：# 牆  . 地板  > ^ < v 發射器  R 接收器
  *       / \ 固定鏡  a = 可動 /  b = 可動 \ */
-extern const level_def LEVELS[];
+extern const level_def LEVELS[];      /* 內建關卡 */
 extern const int LEVEL_COUNT;
+
+/* 目前使用的關卡組（預設內建；SD 卡上有關卡檔就換掉） */
+void game_set_levels(const level_def *defs, int n);
+int  game_level_count(void);
 
 void game_load(game *g, int level);
 void game_load_def(game *g, const level_def *def);   /* 測試用 */

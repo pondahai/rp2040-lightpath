@@ -8,7 +8,7 @@ SDK=$GAME/../..
 OUT=${OUT:-$GAME/build_pc}
 mkdir -p "$OUT"
 CFLAGS="-std=c11 -O2 -Wall -Wextra -I$SDK/lib -I$SDK/tools/pc -I$GAME"
-CORE="$GAME/game.c $GAME/levels.c $GAME/art.c $SDK/lib/gfx.c"
+CORE="$GAME/game.c $GAME/levels.c $GAME/pack.c $GAME/art.c $SDK/lib/gfx.c"
 
 ${CC:-gcc} $CFLAGS "$GAME/test/test_game.c" $CORE -o "$OUT/test_game"
 ${CC:-gcc} $CFLAGS "$HERE/preview.c" "$GAME/scene.c" $CORE "$SDK/tools/pc/png.c" \

@@ -4,6 +4,7 @@
  *   用法：  preview out.png [關卡 1..N] [按鍵序列]
  *           按鍵：L R U D 移動、A 旋轉、B 拿放、S 重來、N 下一關（過關後）
  *           例：preview out.png 3 "LLLLLLUUUB"
+ *         preview --dump-levels lightpath.lvl   把內建關卡寫成關卡檔
  *
  * 只模擬渲染與遊戲邏輯，不模擬 SPI/DMA。
  */
@@ -14,12 +15,27 @@
 #include "game.h"
 #include "scene.h"
 #include "png.h"
+#include "pack.h"
+#include <string.h>
 
 static uint16_t screen[RD_GFX_W * RD_GFX_H];
 static scene sc;
 
+static int dump_levels(const char *path)
+{
+    static char buf[8192];
+    size_t n = pack_format(LEVELS, LEVEL_COUNT, buf, sizeof buf);
+    FILE *f = fopen(path, "wb");
+    if (!n || !f || fwrite(buf, 1, n, f) != n) { fprintf(stderr, "寫不出 %s\n", path); return 1; }
+    fclose(f);
+    printf("%s  %d 關\n", path, LEVEL_COUNT);
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
+    if (argc > 2 && !strcmp(argv[1], "--dump-levels")) return dump_levels(argv[2]);
+
     const char *out = argc > 1 ? argv[1] : "preview.png";
     int level = argc > 2 ? atoi(argv[2]) - 1 : 0;
     const char *keys = argc > 3 ? argv[3] : "";

@@ -84,7 +84,7 @@ void scene_render(int y0, int h, uint16_t *buf, void *ctx)
     rd_rect(&s, PANEL_X, 0, RD_GFX_W - PANEL_X, RD_GFX_H, C_PANEL);
     rd_text(&s, PANEL_X + 12, 8,  "LIGHT", C_TITLE, RD_NOKEY, 1);
     rd_text(&s, PANEL_X + 16, 18, "PATH",  C_TITLE, RD_NOKEY, 1);
-    snprintf(line, sizeof line, "LV %d/%d", g->level + 1, LEVEL_COUNT);
+    snprintf(line, sizeof line, "LV %d/%d", g->level + 1, game_level_count());
     rd_text(&s, PANEL_X + 4, 40, line, C_VALUE, RD_NOKEY, 1);
     snprintf(line, sizeof line, "MV %3d", g->moves);
     rd_text(&s, PANEL_X + 4, 56, line, C_VALUE, RD_NOKEY, 1);
@@ -92,6 +92,13 @@ void scene_render(int y0, int h, uint16_t *buf, void *ctx)
     rd_text(&s, PANEL_X + 4, 72, line, C_VALUE, RD_NOKEY, 1);
     snprintf(line, sizeof line, "LIT %d/%d", g->lit_count, g->receivers);
     rd_text(&s, PANEL_X + 4, 88, line, g->lit_count ? C_CLEAR : C_LABEL, RD_NOKEY, 1);
+
+    if (sc->best && sc->best[g->level]) {
+        snprintf(line, sizeof line, "BEST %d", sc->best[g->level]);
+        rd_text(&s, PANEL_X + 4, 104, line, C_LABEL, RD_NOKEY, 1);
+    }
+    if (sc->msg[0])
+        rd_text(&s, PANEL_X, 176, sc->msg, C_TITLE, RD_NOKEY, 1);
 
     if (sc->all_clear) {
         rd_text(&s, PANEL_X + 4, 120, "ALL", C_CLEAR, RD_NOKEY, 2);
