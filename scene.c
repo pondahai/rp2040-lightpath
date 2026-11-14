@@ -1,5 +1,4 @@
 #include <stdio.h>
-#include <string.h>
 #include "scene.h"
 #include "art.h"
 
@@ -7,90 +6,77 @@
 #define C_TITLE   RD_RGB565(255, 220, 40)
 #define C_LABEL   RD_RGB565(150, 160, 190)
 #define C_VALUE   RD_WHITE
+#define C_CLEAR   RD_RGB565(140, 255, 120)
+#define C_BEAM    RD_RGB565(255, 60, 40)
+#define C_BEAM_HI RD_RGB565(255, 220, 200)
 
-/* G1 示範盤面：外圈牆、一個發射器、兩個接收器、幾面鏡子 */
-static const char *DEMO[BOARD_H] = {
-    "################",
-    "#..............#",
-    "#.E.....\\......#",
-    "#..............#",
-    "#.....##.......#",
-    "#..../.........#",
-    "#........R.....#",
-    "#..##..........#",
-    "#.......\\...R..#",
-    "#..............#",
-    "#..............#",
-    "################",
-};
-
-void scene_demo(scene *sc)
-{
-    memset(sc, 0, sizeof *sc);
-    for (int y = 0; y < BOARD_H; y++)
-        for (int x = 0; x < BOARD_W; x++) {
-            uint8_t t = T_FLOOR;
-            switch (DEMO[y][x]) {
-            case '#':  t = T_WALL;  break;
-            case 'E':  t = T_EMIT;  break;
-            case 'R':  t = T_RECV;  break;
-            case '/':  t = T_MIR_S; break;
-            case '\\': t = T_MIR_B; break;
-            }
-            sc->map[y * BOARD_W + x] = t;
-        }
-    sc->cx = 3;
-    sc->cy = 2;
-    sc->level = 1;
-}
-
-static rd_dirty cell_dirty(int cy)
+rd_dirty scene_dirty_cell(int cy)
 {
     rd_dirty d = 0;
     rd_dirty_mark(&d, cy * TILE, TILE);
     return d;
 }
 
-static rd_dirty panel_dirty(void)
+rd_dirty scene_dirty_board(void)
 {
-    rd_dirty d = 0;
-    rd_dirty_mark(&d, 40, 24);              /* 數字那兩行 */
-    return d;
+    return RD_DIRTY_ALL;
 }
 
-rd_dirty scene_move(scene *sc, int dx, int dy)
+/* 一格裡的光：從中心往每個有標記的邊畫一段。外側 4px 紅、中間 2px 亮芯 */
+static void draw_beam(const rd_strip *s, int x0, int y0, uint8_t edges)
 {
-    int nx = sc->cx + dx, ny = sc->cy + dy;
-    if (nx < 0 || nx >= BOARD_W || ny < 0 || ny >= BOARD_H) return 0;
-    rd_dirty d = cell_dirty(sc->cy);
-    sc->cx = nx;
-    sc->cy = ny;
-    return d | cell_dirty(ny);
-}
-
-rd_dirty scene_rotate(scene *sc)
-{
-    uint8_t *t = &sc->map[sc->cy * BOARD_W + sc->cx];
-    if (*t == T_MIR_S)      *t = T_MIR_B;
-    else if (*t == T_MIR_B) *t = T_MIR_S;
-    else return 0;
-    sc->moves++;
-    return cell_dirty(sc->cy) | panel_dirty();
+    static const int DX[4] = { 1, 0, -1, 0 };
+    static const int DY[4] = { 0, -1, 0, 1 };
+    for (int d = 0; d < 4; d++) {
+        if (!(edges & EDGE(d))) continue;
+        for (int pass = 0; pass < 2; pass++) {
+            int w = pass ? 2 : 4, o = pass ? 7 : 6;
+            uint16_t c = pass ? C_BEAM_HI : C_BEAM;
+            int x, y, bw, bh;
+            if (DX[d]) {            /* 水平段：中心到左或右邊 */
+                x  = DX[d] > 0 ? x0 + o : x0;
+                bw = DX[d] > 0 ? TILE - o : o + w;
+                y  = y0 + o;
+                bh = w;
+            } else {                /* 垂直段 */
+                bw = w;
+                y = DY[d] > 0 ? y0 + o : y0;
+                bh = DY[d] > 0 ? TILE - o : o + w;
+                x = x0 + o;
+            }
+            rd_rect(s, x, y, bw, bh, c);
+        }
+    }
 }
 
 void scene_render(int y0, int h, uint16_t *buf, void *ctx)
 {
     const scene *sc = ctx;
+    const game *g = &sc->g;
     rd_strip s = { buf, y0, h };
-    char line[12];
+    char line[32];
 
     /* 一定要先鋪底：實機的 strip buffer 是重複使用的，沒畫到的地方會留上一條的殘影 */
     rd_fill(&s, RD_BLACK);
 
-    rd_tilemap tm = { art_tiles, sc->map, TILE, TILE, BOARD_W, BOARD_H, 0, 0 };
-    rd_draw_tilemap(&s, &tm);
+    /* 只在跟這條重疊的盤面列上畫 */
+    uint8_t rowmap[BOARD_W];
+    for (int cy = 0; cy < BOARD_H; cy++) {
+        int py = cy * TILE;
+        if (py + TILE <= y0 || py >= y0 + h) continue;
+        for (int cx = 0; cx < BOARD_W; cx++) {
+            int i = cy * BOARD_W + cx;
+            rowmap[cx] = (g->cell[i] == T_RECV && g->lit[i]) ? T_RECV_ON : g->cell[i];
+        }
+        rd_tilemap tm = { art_tiles, rowmap, TILE, TILE, BOARD_W, 1, 0, (int16_t)py };
+        rd_draw_tilemap(&s, &tm);
+        for (int cx = 0; cx < BOARD_W; cx++) {
+            uint8_t e = g->beam[cy * BOARD_W + cx];
+            if (e) draw_beam(&s, cx * TILE, py, e);
+        }
+    }
 
-    rd_sprite cur = { art_cursor, (int16_t)(sc->cx * TILE), (int16_t)(sc->cy * TILE),
+    rd_sprite cur = { art_cursor, (int16_t)(g->cx * TILE), (int16_t)(g->cy * TILE),
                       TILE, TILE, 1, KEY_MAGENTA };
     rd_draw_sprites(&s, &cur, 1);
 
@@ -98,10 +84,25 @@ void scene_render(int y0, int h, uint16_t *buf, void *ctx)
     rd_rect(&s, PANEL_X, 0, RD_GFX_W - PANEL_X, RD_GFX_H, C_PANEL);
     rd_text(&s, PANEL_X + 12, 8,  "LIGHT", C_TITLE, RD_NOKEY, 1);
     rd_text(&s, PANEL_X + 16, 18, "PATH",  C_TITLE, RD_NOKEY, 1);
-    snprintf(line, sizeof line, "LV %3d", sc->level);
+    snprintf(line, sizeof line, "LV %d/%d", g->level + 1, LEVEL_COUNT);
     rd_text(&s, PANEL_X + 4, 40, line, C_VALUE, RD_NOKEY, 1);
-    snprintf(line, sizeof line, "MV %3d", sc->moves);
+    snprintf(line, sizeof line, "MV %3d", g->moves);
     rd_text(&s, PANEL_X + 4, 56, line, C_VALUE, RD_NOKEY, 1);
-    rd_text(&s, PANEL_X + 4, 208, "A:TURN", C_LABEL, RD_NOKEY, 1);
-    rd_text(&s, PANEL_X + 4, 220, "<>:MOVE", C_LABEL, RD_NOKEY, 1);
+    snprintf(line, sizeof line, "HAND %d", g->hand);
+    rd_text(&s, PANEL_X + 4, 72, line, C_VALUE, RD_NOKEY, 1);
+    snprintf(line, sizeof line, "LIT %d/%d", g->lit_count, g->receivers);
+    rd_text(&s, PANEL_X + 4, 88, line, g->lit_count ? C_CLEAR : C_LABEL, RD_NOKEY, 1);
+
+    if (sc->all_clear) {
+        rd_text(&s, PANEL_X + 4, 120, "ALL", C_CLEAR, RD_NOKEY, 2);
+        rd_text(&s, PANEL_X + 0, 140, "CLEAR", C_CLEAR, RD_NOKEY, 1);
+        rd_text(&s, PANEL_X, 156, "ST:AGAIN", C_LABEL, RD_NOKEY, 1);
+    } else if (game_cleared(g)) {
+        rd_text(&s, PANEL_X + 4, 120, "CLEAR!", C_CLEAR, RD_NOKEY, 1);
+        rd_text(&s, PANEL_X + 4, 136, "A:NEXT", C_LABEL, RD_NOKEY, 1);
+    }
+
+    rd_text(&s, PANEL_X + 4, 196, "A:TURN", C_LABEL, RD_NOKEY, 1);
+    rd_text(&s, PANEL_X + 4, 208, "B:TAKE", C_LABEL, RD_NOKEY, 1);
+    rd_text(&s, PANEL_X, 220, "ST:RETRY", C_LABEL, RD_NOKEY, 1);
 }

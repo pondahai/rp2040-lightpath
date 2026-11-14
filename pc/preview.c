@@ -1,40 +1,52 @@
 /* PC 預覽：用跟實機同一份 scene_render()，一條一條畫成 320×240，存 PNG。
  *
- *   build：examples/lightpath/pc/build.sh
- *   用法：  preview out.png [按鍵序列]
- *           按鍵：L R U D A，例如 "RRDA" = 右右下、旋轉
+ *   build：sh examples/lightpath/pc/build.sh（順便跑 test_game）
+ *   用法：  preview out.png [關卡 1..N] [按鍵序列]
+ *           按鍵：L R U D 移動、A 旋轉、B 拿放、S 重來、N 下一關（過關後）
+ *           例：preview out.png 3 "LLLLLLUUUB"
  *
- * 只模擬渲染與遊戲邏輯，不模擬 SPI/DMA；條是一條一條畫的，
- * 所以條與條之間的裁切錯誤在這裡一樣看得到。
+ * 只模擬渲染與遊戲邏輯，不模擬 SPI/DMA。
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include "gfx.h"
 #include "art.h"
+#include "game.h"
 #include "scene.h"
 #include "png.h"
 
 static uint16_t screen[RD_GFX_W * RD_GFX_H];
+static scene sc;
 
 int main(int argc, char **argv)
 {
     const char *out = argc > 1 ? argv[1] : "preview.png";
-    const char *keys = argc > 2 ? argv[2] : "";
-    scene sc;
+    int level = argc > 2 ? atoi(argv[2]) - 1 : 0;
+    const char *keys = argc > 3 ? argv[3] : "";
+    if (level < 0 || level >= LEVEL_COUNT) level = 0;
 
     art_init();
-    scene_demo(&sc);
+    game_load(&sc.g, level);
+    game *g = &sc.g;
     for (const char *k = keys; *k; k++)
         switch (*k) {
-        case 'L': scene_move(&sc, -1, 0); break;
-        case 'R': scene_move(&sc, 1, 0);  break;
-        case 'U': scene_move(&sc, 0, -1); break;
-        case 'D': scene_move(&sc, 0, 1);  break;
-        case 'A': scene_rotate(&sc);      break;
+        case 'L': game_move(g, -1, 0); break;
+        case 'R': game_move(g, 1, 0);  break;
+        case 'U': game_move(g, 0, -1); break;
+        case 'D': game_move(g, 0, 1);  break;
+        case 'A': game_rotate(g);      break;
+        case 'B': game_take_place(g);  break;
+        case 'S': game_load(g, g->level); break;
+        case 'N':
+            if (game_cleared(g)) {
+                if (g->level + 1 < LEVEL_COUNT) game_load(g, g->level + 1);
+                else sc.all_clear = 1;
+            }
+            break;
         }
 
     /* 先填洋紅：render 沒畫到的像素在實機會是殘影，這裡要一眼看得出來 */
     for (int i = 0; i < RD_GFX_W * RD_GFX_H; i++) screen[i] = 0xF81F;
-
     for (int y = 0; y < RD_GFX_H; y += RD_STRIP_H)
         scene_render(y, RD_STRIP_H, screen + y * RD_GFX_W, &sc);
 
@@ -42,6 +54,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "寫不出 %s\n", out);
         return 1;
     }
-    printf("%s\n", out);
+    printf("%s  LV %d  lit %d/%d%s\n", out, g->level + 1, g->lit_count, g->receivers,
+           game_cleared(g) ? "  CLEAR" : "");
     return 0;
 }

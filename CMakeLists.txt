@@ -3,7 +3,8 @@
 #   載入器版 + standalone 版：
 #       cmake -B build_offset -G Ninja -DLOADER_OFFSET_BUILD=ON && ninja -C build_offset
 #   編完直接推進掌機 SD 卡（掌機停在載入器選單、USB 接著）：
-#       ninja -C build_offset lightpath_push
+#       ninja -C build_offset lightpath_push   # 只推
+#       ninja -C build_offset lightpath_run    # 推完直接啟動
 #   直接 USB 燒錄版：
 #       cmake -B build -G Ninja && ninja -C build
 cmake_minimum_required(VERSION 3.13)
@@ -15,7 +16,7 @@ pico_sdk_init()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/retro_sdk.cmake)
 
-add_executable(lightpath main.c scene.c art.c)
+add_executable(lightpath main.c scene.c art.c game.c levels.c)
 target_link_libraries(lightpath retro_sdk)
 target_compile_options(lightpath PRIVATE -Wall -Wextra)
 retro_app(lightpath)
