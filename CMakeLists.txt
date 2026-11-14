@@ -15,7 +15,7 @@ pico_sdk_init()
 
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/retro_sdk.cmake)
 
-add_executable(lightpath main.c)
+add_executable(lightpath main.c scene.c art.c)
 target_link_libraries(lightpath retro_sdk)
 target_compile_options(lightpath PRIVATE -Wall -Wextra)
 retro_app(lightpath)
