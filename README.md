@@ -19,6 +19,40 @@ RP2040 復古掌機的光路益智遊戲：轉動、搬動鏡子，把發射器�
 - 內建 5 關；SD 卡放 `lightpath.lvl` 就取代內建關卡，進度與每關最少步數存在 `lightpath.sav`
 - 沒插卡也能玩，只是不存檔
 
+## 怎麼玩
+
+先照下方「硬體接腳」接好 Raspberry Pi Pico、ILI9341 SPI 螢幕、按鍵與喇叭
+（BOM 與完整說明在 [rp2040-retro-handheld](https://github.com/pondahai/rp2040-retro-handheld) 的「🛠️ 硬體開源」章節）。
+檔案都在 [Releases](../../releases/latest)：
+
+- **跟著生態系**：把 `lightpath.uf2` 和 `LIGHTPATH.RAW`（封面）放進 SD 卡，從
+  [載入器](https://github.com/pondahai/rp2040-retro-loader)選單啟動。
+- **單獨玩**：用 RP2040 的燒錄法 —— 按住 BOOTSEL 接上 USB，把 `lightpath_standalone.uf2`
+  拖進 `RPI-RP2` 磁碟。不需要載入器（會蓋掉板子上原本的韌體）。
+- **自訂關卡**（選用）：把 `lightpath.lvl` 放進 SD 卡根目錄就會取代內建關卡；它是純文字，
+  可以直接改，格式見 `pack.h`。
+
+## 硬體接腳
+
+本遊戲用到的接腳（GPIO 編號）。定義在 SDK 的
+[`board/board.h`](https://github.com/pondahai/rp2040-retro-sdk/blob/main/board/board.h)，
+跟生態系其他韌體共用同一塊板子，完整接腳表見
+[HARDWARE.md](https://github.com/pondahai/rp2040-retro-handheld/blob/main/docs/HARDWARE.md)。
+
+| 功能 | 訊號 | GPIO |
+| :--- | :--- | ---: |
+| 螢幕 ILI9341（spi0） | SCK | 18 |
+| | MOSI | 19 |
+| | CS | 17 |
+| | D/C | 20 |
+| | RST | 21 |
+| | 背光 BL | 22 |
+| 按鍵（接 GND，內部上拉） | 上 / 下 / 左 / 右 | 9 / 5 / 8 / 6 |
+| | A / B | 2 / 3 |
+| | START | 4 |
+| SD 卡（spi1，選用） | SCK / MOSI / MISO / CS | 10 / 11 / 12 / 13 |
+| 音效（PWM → RC 低通 → PAM8403） | AUDIO | 7 |
+
 ## 這個範例示範了什麼
 
 | 檔案 | 內容 |
