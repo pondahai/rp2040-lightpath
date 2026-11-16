@@ -1,6 +1,6 @@
 /* PC 預覽：用跟實機同一份 scene_render()，一條一條畫成 320×240，存 PNG。
  *
- *   build：sh examples/lightpath/pc/build.sh（順便跑 test_game）
+ *   build：sh pc/build.sh（順便跑 test_game）
  *   用法：  preview out.png [關卡 1..N] [按鍵序列]
  *           按鍵：L R U D 移動、A 旋轉、B 拿放、S 重來、N 下一關（過關後）
  *           例：preview out.png 3 "LLLLLLUUUB"

@@ -1,4 +1,4 @@
-/* 遊戲邏輯的 PC 測試：sh examples/lightpath/pc/build.sh 會一起編並執行。 */
+/* 遊戲邏輯的 PC 測試：sh pc/build.sh 會一起編並執行。 */
 #include <stdio.h>
 #include <string.h>
 #include "game.h"

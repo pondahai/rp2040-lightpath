@@ -5,7 +5,7 @@
 | ![LIGHT PATH 開局](docs/start.png) | ![LIGHT PATH 過關](docs/clear.png) |
 
 RP2040 復古掌機的光路益智遊戲：轉動、搬動鏡子，把發射器射出的光導到每一個接收器，
-全部點亮就過關。也是 [rp2040-retro-sdk](../../README.md) 的**第一款原生遊戲**與完整範例。
+全部點亮就過關。也是 [rp2040-retro-sdk](https://github.com/pondahai/rp2040-retro-sdk) 的**第一款原生遊戲**與完整範例。
 
 | 按鍵 | 作用 |
 | :--- | :--- |
@@ -35,22 +35,24 @@ RP2040 復古掌機的光路益智遊戲：轉動、搬動鏡子，把發射器�
 
 ## 編譯與上機
 
-在 SDK 根目錄（步驟詳見 [GETTING-STARTED.md](../../docs/GETTING-STARTED.md)）：
+SDK 以 git submodule 放在 `sdk/`，clone 時一起抓：
 
 ```bash
-source tools/env.sh
-cmake -S examples/lightpath -B examples/lightpath/build_offset -G Ninja -DLOADER_OFFSET_BUILD=ON
-ninja -C examples/lightpath/build_offset lightpath_run   # 推上掌機並啟動
+git clone --recursive https://github.com/pondahai/rp2040-lightpath
+cd rp2040-lightpath
+cmake -B build_offset -G Ninja -DLOADER_OFFSET_BUILD=ON
+ninja -C build_offset lightpath_run   # 推上掌機並啟動
 ```
 
+工具鏈設定見 SDK 的 [GETTING-STARTED.md](https://github.com/pondahai/rp2040-retro-sdk/blob/main/docs/GETTING-STARTED.md)。
 產出 `lightpath.uf2`（載入器選單版，搭配封面 `LIGHTPATH.RAW`）與 `lightpath_standalone.uf2`（BOOTSEL 直接燒）。
 
 ## 在電腦上預覽與測試
 
 ```bash
-sh examples/lightpath/pc/build.sh              # 編譯並跑 test_game
-examples/lightpath/build_pc/preview out.png 4  # 第 4 關開局
-examples/lightpath/build_pc/preview out.png 1 UA # 第 1 關：游標上移、轉鏡子 → 過關
+sh pc/build.sh              # 編譯並跑 test_game
+build_pc/preview out.png 4  # 第 4 關開局
+build_pc/preview out.png 1 UA # 第 1 關：游標上移、轉鏡子 → 過關
 ```
 
 按鍵序列：`L R U D` 移動、`A` 旋轉、`B` 拿放、`S` 重來、`N` 下一關。

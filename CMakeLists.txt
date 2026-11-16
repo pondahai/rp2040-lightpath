@@ -1,4 +1,4 @@
-# 光路反射 —— 第一款原生遊戲，見 docs/GAME-PLAN.md
+# 光路反射 —— 以 rp2040-retro-sdk 撰寫的第一款原生遊戲
 #
 #   載入器版 + standalone 版：
 #       cmake -B build_offset -G Ninja -DLOADER_OFFSET_BUILD=ON && ninja -C build_offset
@@ -9,12 +9,24 @@
 #       cmake -B build -G Ninja && ninja -C build
 cmake_minimum_required(VERSION 3.13)
 
+# 找 SDK：-DRETRO_SDK_PATH=... > ./sdk（git submodule）> ../..（放在 SDK 的 examples/ 底下）
+if(NOT RETRO_SDK_PATH)
+    if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/sdk/cmake/retro_sdk.cmake")
+        set(RETRO_SDK_PATH "${CMAKE_CURRENT_LIST_DIR}/sdk")
+    elseif(EXISTS "${RETRO_SDK_PATH}/cmake/retro_sdk.cmake")
+        set(RETRO_SDK_PATH "${CMAKE_CURRENT_LIST_DIR}/../..")
+    else()
+        message(FATAL_ERROR "找不到 rp2040-retro-sdk。請 git submodule add 到 ./sdk，"
+                            "或用 -DRETRO_SDK_PATH=<路徑> 指定。")
+    endif()
+endif()
+
 include(pico_sdk_import.cmake)
 project(lightpath C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 pico_sdk_init()
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/retro_sdk.cmake)
+include(${RETRO_SDK_PATH}/cmake/retro_sdk.cmake)
 
 add_executable(lightpath main.c scene.c art.c game.c levels.c pack.c)
 target_link_libraries(lightpath retro_sdk_sd)

@@ -4,7 +4,7 @@
 硬邊明暗（受光左上）、深褐描邊、一個暖色重點（紅色光束）。
 輸出 assets/cover.png（檢視用）與 assets/LIGHTPATH.RAW（RGB565 big-endian）。
 
-    python examples/lightpath/tools/make_cover.py      （需要 Pillow）
+    python tools/make_cover.py      （需要 Pillow）
 """
 import os
 import struct

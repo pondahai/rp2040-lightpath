@@ -77,7 +77,7 @@ void pack_parse(level_pack *p, const char *txt, size_t len)
 size_t pack_format(const level_def *defs, int n, char *buf, size_t cap)
 {
     size_t at = 0;
-    int w = snprintf(buf, cap, "; lightpath 關卡檔，格式見 examples/lightpath/pack.h\n\n");
+    int w = snprintf(buf, cap, "; lightpath 關卡檔，格式見 pack.h\n\n");
     if (w < 0 || (size_t)w >= cap) return 0;
     at = (size_t)w;
     for (int i = 0; i < n; i++) {
